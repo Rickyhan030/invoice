@@ -46,6 +46,20 @@
     .footer{position:absolute;left:36px;right:36px;bottom:130px;display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;font-size:22px;align-items:end}
     .thank{font-size:23px}
 
+
+    body.pdf-mode .invoice{
+      transform:none !important;
+      width:1120px !important;
+      min-height:794px !important;
+      margin:0 !important;
+    }
+    body.pdf-mode .paper-wrap{
+      background:#fff !important;
+      padding:0 !important;
+      overflow:visible !important;
+      height:auto !important;
+    }
+
     @media(max-width:800px){
       .grid,.actions{grid-template-columns:1fr}
       .app{padding:10px}
@@ -330,18 +344,34 @@ SUMI BTR</textarea></div>
       var element = el("invoiceArea");
       var fileName = "nota-invoice.pdf";
 
+      document.body.classList.add("pdf-mode");
+
       var opt = {
-        margin: 0.3,
+        margin: 0,
         filename: fileName,
         image: { type: "jpeg", quality: 1 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "in", format: "a4", orientation: "landscape" }
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 1120,
+          windowHeight: 794
+        },
+        jsPDF: {
+          unit: "px",
+          format: [1120, 794],
+          orientation: "landscape"
+        },
+        pagebreak: { mode: ["avoid-all"] }
       };
 
       try {
         var worker = html2pdf().set(opt).from(element);
         var pdfBlob = await worker.outputPdf("blob");
         var file = new File([pdfBlob], fileName, { type: "application/pdf" });
+
+        document.body.classList.remove("pdf-mode");
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
@@ -355,6 +385,7 @@ SUMI BTR</textarea></div>
           alert("PDF berhasil didownload. Buka WhatsApp lalu kirim file PDF tersebut secara manual.");
         }
       } catch (e) {
+        document.body.classList.remove("pdf-mode");
         try {
           await html2pdf().set(opt).from(element).save();
           alert("PDF berhasil didownload. Kirim manual file PDF tersebut lewat WhatsApp.");
