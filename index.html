@@ -336,7 +336,7 @@ SUMI BTR</textarea></div>
       updateFromInputs();
       renderPreview();
 
-      if (typeof html2pdf === "undefined") {
+      if (typeof html2canvas === "undefined" || typeof window.jspdf === "undefined") {
         alert("Library PDF belum termuat. Pastikan internet aktif, lalu refresh halaman.");
         return;
       }
@@ -345,30 +345,32 @@ SUMI BTR</textarea></div>
       var fileName = "nota-invoice.pdf";
 
       document.body.classList.add("pdf-mode");
-
-      var opt = {
-        margin: 0,
-        filename: fileName,
-        image: { type: "jpeg", quality: 1 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: 1120,
-          windowHeight: 794
-        },
-        jsPDF: {
-          unit: "px",
-          format: [1120, 794],
-          orientation: "landscape"
-        },
-        pagebreak: { mode: ["avoid-all"] }
-      };
+      window.scrollTo(0, 0);
 
       try {
-        var worker = html2pdf().set(opt).from(element);
-        var pdfBlob = await worker.outputPdf("blob");
+        var canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          width: 1120,
+          height: 794,
+          windowWidth: 1120,
+          windowHeight: 794,
+          scrollX: 0,
+          scrollY: 0
+        });
+
+        var imgData = canvas.toDataURL("image/jpeg", 1.0);
+        var jsPDF = window.jspdf.jsPDF;
+        var pdf = new jsPDF({
+          orientation: "landscape",
+          unit: "px",
+          format: [1120, 794],
+          compress: true
+        });
+
+        pdf.addImage(imgData, "JPEG", 0, 0, 1120, 794);
+        var pdfBlob = pdf.output("blob");
         var file = new File([pdfBlob], fileName, { type: "application/pdf" });
 
         document.body.classList.remove("pdf-mode");
@@ -379,19 +381,14 @@ SUMI BTR</textarea></div>
             title: "Nota Invoice",
             text: "Berikut nota invoice PDF"
           });
-          el("status").innerText = "PDF siap dibagikan ke WhatsApp";
+          el("status").innerText = "PDF 1 lembar siap dibagikan ke WhatsApp";
         } else {
-          await html2pdf().set(opt).from(element).save();
-          alert("PDF berhasil didownload. Buka WhatsApp lalu kirim file PDF tersebut secara manual.");
+          pdf.save(fileName);
+          alert("PDF 1 lembar berhasil didownload. Kirim file PDF tersebut lewat WhatsApp.");
         }
       } catch (e) {
         document.body.classList.remove("pdf-mode");
-        try {
-          await html2pdf().set(opt).from(element).save();
-          alert("PDF berhasil didownload. Kirim manual file PDF tersebut lewat WhatsApp.");
-        } catch (err) {
-          alert("Gagal membuat PDF. Gunakan tombol Print / PDF sebagai alternatif.");
-        }
+        alert("Gagal membuat PDF. Coba refresh halaman lalu ulangi.");
       }
     }
 
