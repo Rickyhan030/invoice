@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aplikasi Nota Invoice</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     *{box-sizing:border-box}
     body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;color:#111}
@@ -337,7 +338,7 @@ SUMI BTR</textarea></div>
       renderPreview();
 
       if (typeof html2canvas === "undefined" || typeof window.jspdf === "undefined") {
-        alert("Library PDF belum termuat. Pastikan internet aktif, lalu refresh halaman.");
+        alert("Library PDF gagal dimuat. Pastikan koneksi internet aktif lalu refresh halaman.");
         return;
       }
 
