@@ -4,21 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aplikasi Nota Invoice</title>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
   <style>
     *{box-sizing:border-box}
     body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;color:#111}
     .app{max-width:1200px;margin:auto;padding:16px}
+    h2{margin:0 0 12px}
+    .status{background:#dcfce7;color:#166534;padding:10px;border-radius:10px;margin-bottom:12px;font-weight:bold}
     .panel{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 8px 25px rgba(0,0,0,.08)}
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     label{display:block;font-size:13px;font-weight:700;margin-bottom:5px}
     input,textarea,button{width:100%;padding:11px;border:1px solid #ddd;border-radius:10px;font-size:14px}
-    textarea{min-height:70px;resize:vertical}
+    textarea{min-height:72px;resize:vertical}
     button{cursor:pointer;border:0;background:#111;color:white;font-weight:800}
     .secondary{background:#e5e7eb;color:#111}
-    .wa{background:#16a34a;color:#fff;font-size:15px}
+    .wa{background:#16a34a;color:#fff}
     .danger{background:#dc2626;color:#fff}
     .actions{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
     table{width:100%;border-collapse:collapse}
@@ -55,7 +55,7 @@
 
     @media print{
       body{background:#fff}
-      .panel,.app>h2{display:none}
+      .panel,.app>h2,.status{display:none}
       .app{padding:0}
       .paper-wrap{padding:0;background:#fff}
       .invoice{width:100%;min-height:100vh}
@@ -66,6 +66,7 @@
 <body>
   <div class="app">
     <h2>Aplikasi Nota Invoice</h2>
+    <div class="status" id="status">Memuat aplikasi...</div>
 
     <div class="panel">
       <div class="grid">
@@ -154,18 +155,26 @@ SUMI BTR</textarea></div>
 
   <script>
     var items = [
-      {qty:1, name:"MADU ASLI SBW 5L", price:0},
-      {qty:4, name:"Sarang Madu 500gr", price:0},
-      {qty:1, name:"ONGKIR", price:0}
+      { qty: 1, name: "MADU ASLI SBW 5L", price: 0 },
+      { qty: 4, name: "Sarang Madu 500gr", price: 0 },
+      { qty: 1, name: "ONGKIR", price: 0 }
     ];
 
     var defaultLogo = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22130%22%20height%3D%22142%22%3E%3Crect%20width%3D%22130%22%20height%3D%22142%22%20fill%3D%22%23f7c948%22/%3E%3Ctext%20x%3D%2265%22%20y%3D%2274%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%22%3ELOGO%3C/text%3E%3C/svg%3E";
 
-    function el(id){ return document.getElementById(id); }
-    function rupiah(n){ return Number(n || 0).toLocaleString("id-ID"); }
-    function cleanNumber(v){ return Number(String(v || "0").replace(/[^0-9]/g, "")); }
+    function el(id) {
+      return document.getElementById(id);
+    }
 
-    function escapeHtml(text){
+    function rupiah(n) {
+      return Number(n || 0).toLocaleString("id-ID");
+    }
+
+    function cleanNumber(v) {
+      return Number(String(v || "0").replace(/[^0-9]/g, ""));
+    }
+
+    function escapeHtml(text) {
       return String(text || "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -174,28 +183,30 @@ SUMI BTR</textarea></div>
         .replace(/'/g, "&#039;");
     }
 
-    function updateFromInputs(){
-      var qtys = document.querySelectorAll(".qtyInput");
-      var names = document.querySelectorAll(".nameInput");
-      var prices = document.querySelectorAll(".priceInput");
-
-      for(var i = 0; i < items.length; i++){
-        if(qtys[i]) items[i].qty = cleanNumber(qtys[i].value);
-        if(names[i]) items[i].name = names[i].value;
-        if(prices[i]) items[i].price = cleanNumber(prices[i].value);
+    function updateFromInputs() {
+      var rows = document.querySelectorAll("#editItems tr");
+      for (var i = 0; i < rows.length; i++) {
+        var qtyInput = rows[i].querySelector(".qtyInput");
+        var nameInput = rows[i].querySelector(".nameInput");
+        var priceInput = rows[i].querySelector(".priceInput");
+        if (items[i]) {
+          items[i].qty = cleanNumber(qtyInput.value);
+          items[i].name = nameInput.value;
+          items[i].price = cleanNumber(priceInput.value);
+        }
       }
     }
 
-    function renderInputRows(){
+    function renderInputRows() {
       var html = "";
-      for(var i = 0; i < items.length; i++){
+      for (var i = 0; i < items.length; i++) {
         var q = Number(items[i].qty || 0);
         var p = Number(items[i].price || 0);
         var j = q * p;
 
         html += "<tr>";
         html += "<td><input class='qtyInput' type='number' value='" + q + "'></td>";
-        html += "<td><input class='nameInput' type='text' value="" + escapeHtml(items[i].name) + ""></td>";
+        html += "<td><input class='nameInput' type='text' value=\"" + escapeHtml(items[i].name) + "\"></td>";
         html += "<td><input class='priceInput' type='number' value='" + p + "'></td>";
         html += "<td>Rp " + rupiah(j) + "</td>";
         html += "<td><button type='button' class='danger deleteBtn' data-index='" + i + "'>Hapus</button></td>";
@@ -204,9 +215,7 @@ SUMI BTR</textarea></div>
       el("editItems").innerHTML = html;
     }
 
-    function renderPreview(){
-      updateFromInputs();
-
+    function renderPreview() {
       var total = 0;
       var totalQty = 0;
       var html = "";
@@ -218,7 +227,7 @@ SUMI BTR</textarea></div>
       el("pCustomerName").innerText = el("customerName").value;
       el("pCustomerAddress").innerText = el("customerAddress").value;
 
-      for(var i = 0; i < items.length; i++){
+      for (var i = 0; i < items.length; i++) {
         var q = Number(items[i].qty || 0);
         var p = Number(items[i].price || 0);
         var j = q * p;
@@ -244,19 +253,21 @@ SUMI BTR</textarea></div>
       el("pTimestamp").innerText = new Date().toLocaleString("id-ID");
     }
 
-    function renderAll(){
+    function renderAll() {
       renderInputRows();
       renderPreview();
     }
 
-    function tambahItem(){
+    function tambahItem() {
       updateFromInputs();
-      items.push({qty:1, name:"Nama Item Baru", price:0});
+      items.push({ qty: 1, name: "Nama Item Baru", price: 0 });
       renderAll();
+      el("status").innerText = "Item berhasil ditambahkan";
     }
 
-    function simpanData(){
+    function simpanData() {
       updateFromInputs();
+      renderPreview();
 
       var data = {
         items: items,
@@ -270,37 +281,51 @@ SUMI BTR</textarea></div>
         paid: el("paid").value
       };
 
-      localStorage.setItem("dataNotaInvoicePDF", JSON.stringify(data));
-      alert("Data berhasil disimpan");
-      renderPreview();
+      try {
+        localStorage.setItem("dataNotaInvoiceFinal", JSON.stringify(data));
+        el("status").innerText = "Data berhasil disimpan";
+        alert("Data berhasil disimpan");
+      } catch (err) {
+        alert("Gagal menyimpan data. Coba gunakan Chrome atau aktifkan storage browser.");
+      }
     }
 
-    function muatData(){
-      var saved = localStorage.getItem("dataNotaInvoicePDF");
+    function muatData() {
+      el("logoPreview").src = defaultLogo;
 
-      if(saved){
-        try{
-          var data = JSON.parse(saved);
-          if(data.items && data.items.length) items = data.items;
-          el("logoPreview").src = data.logo || defaultLogo;
-          el("companyName").value = data.companyName || el("companyName").value;
-          el("companyAddress").value = data.companyAddress || el("companyAddress").value;
-          el("companyPhone").value = data.companyPhone || el("companyPhone").value;
-          el("date").value = data.date || el("date").value;
-          el("customerName").value = data.customerName || el("customerName").value;
-          el("customerAddress").value = data.customerAddress || el("customerAddress").value;
-          el("paid").value = data.paid || el("paid").value;
-        }catch(err){
-          el("logoPreview").src = defaultLogo;
-        }
-      }else{
+      try {
+        var saved = localStorage.getItem("dataNotaInvoiceFinal");
+        if (!saved) return;
+
+        var data = JSON.parse(saved);
+        if (data.items && data.items.length) items = data.items;
+        if (data.logo) el("logoPreview").src = data.logo;
+        if (data.companyName) el("companyName").value = data.companyName;
+        if (data.companyAddress) el("companyAddress").value = data.companyAddress;
+        if (data.companyPhone) el("companyPhone").value = data.companyPhone;
+        if (data.date) el("date").value = data.date;
+        if (data.customerName) el("customerName").value = data.customerName;
+        if (data.customerAddress) el("customerAddress").value = data.customerAddress;
+        if (data.paid) el("paid").value = data.paid;
+      } catch (err) {
         el("logoPreview").src = defaultLogo;
       }
     }
 
-    async function kirimPDFWA(){
+    function printPDF() {
       updateFromInputs();
       renderPreview();
+      window.print();
+    }
+
+    async function kirimPDFWA() {
+      updateFromInputs();
+      renderPreview();
+
+      if (typeof html2pdf === "undefined") {
+        alert("Library PDF belum termuat. Pastikan internet aktif, lalu refresh halaman.");
+        return;
+      }
 
       var element = el("invoiceArea");
       var fileName = "nota-invoice.pdf";
@@ -313,75 +338,84 @@ SUMI BTR</textarea></div>
         jsPDF: { unit: "in", format: "a4", orientation: "landscape" }
       };
 
-      try{
+      try {
         var worker = html2pdf().set(opt).from(element);
         var pdfBlob = await worker.outputPdf("blob");
         var file = new File([pdfBlob], fileName, { type: "application/pdf" });
 
-        if(navigator.canShare && navigator.canShare({ files: [file] })){
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             files: [file],
             title: "Nota Invoice",
             text: "Berikut nota invoice PDF"
           });
-        }else{
+          el("status").innerText = "PDF siap dibagikan ke WhatsApp";
+        } else {
           await html2pdf().set(opt).from(element).save();
-          alert("PDF berhasil dibuat. Jika WhatsApp tidak terbuka otomatis, kirim file PDF yang terdownload secara manual lewat WhatsApp.");
+          alert("PDF berhasil didownload. Buka WhatsApp lalu kirim file PDF tersebut secara manual.");
         }
-      }catch(e){
-        await html2pdf().set(opt).from(element).save();
-        alert("PDF berhasil didownload. Kirim manual file PDF tersebut lewat WhatsApp.");
+      } catch (e) {
+        try {
+          await html2pdf().set(opt).from(element).save();
+          alert("PDF berhasil didownload. Kirim manual file PDF tersebut lewat WhatsApp.");
+        } catch (err) {
+          alert("Gagal membuat PDF. Gunakan tombol Print / PDF sebagai alternatif.");
+        }
       }
     }
 
-    function resetData(){
-      if(confirm("Reset semua data?")){
-        localStorage.removeItem("dataNotaInvoicePDF");
+    function resetData() {
+      if (confirm("Reset semua data?")) {
+        localStorage.removeItem("dataNotaInvoiceFinal");
         location.reload();
       }
     }
 
-    document.addEventListener("DOMContentLoaded", function(){
-      muatData();
-      renderAll();
+    function gantiLogo(event) {
+      var file = event.target.files[0];
+      if (!file) return;
 
-      el("btnAdd").addEventListener("click", tambahItem);
-      el("btnSave").addEventListener("click", simpanData);
-      el("btnPrint").addEventListener("click", function(){
-        updateFromInputs();
-        renderPreview();
-        window.print();
-      });
-      el("btnWA").addEventListener("click", kirimPDFWA);
-      el("btnReset").addEventListener("click", resetData);
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        el("logoPreview").src = ev.target.result;
+        el("status").innerText = "Logo berhasil diganti";
+      };
+      reader.readAsDataURL(file);
+    }
 
-      var fields = ["companyName","companyAddress","companyPhone","date","customerName","customerAddress","paid"];
-      for(var i = 0; i < fields.length; i++){
-        el(fields[i]).addEventListener("input", renderPreview);
+    function pasangEvent() {
+      el("btnAdd").onclick = tambahItem;
+      el("btnSave").onclick = simpanData;
+      el("btnPrint").onclick = printPDF;
+      el("btnWA").onclick = kirimPDFWA;
+      el("btnReset").onclick = resetData;
+      el("logoInput").onchange = gantiLogo;
+
+      var fields = ["companyName", "companyAddress", "companyPhone", "date", "customerName", "customerAddress", "paid"];
+      for (var i = 0; i < fields.length; i++) {
+        el(fields[i]).oninput = renderPreview;
       }
 
-      el("editItems").addEventListener("input", renderPreview);
+      el("editItems").oninput = function() {
+        updateFromInputs();
+        renderPreview();
+      };
 
-      el("editItems").addEventListener("click", function(e){
-        if(e.target.classList.contains("deleteBtn")){
+      el("editItems").onclick = function(e) {
+        if (e.target.classList.contains("deleteBtn")) {
           updateFromInputs();
           var index = Number(e.target.getAttribute("data-index"));
           items.splice(index, 1);
           renderAll();
         }
-      });
+      };
+    }
 
-      el("logoInput").addEventListener("change", function(){
-        var file = this.files[0];
-        if(!file) return;
-
-        var reader = new FileReader();
-        reader.onload = function(ev){
-          el("logoPreview").src = ev.target.result;
-          simpanData();
-        };
-        reader.readAsDataURL(file);
-      });
+    document.addEventListener("DOMContentLoaded", function() {
+      muatData();
+      renderAll();
+      pasangEvent();
+      el("status").innerText = "Script aktif - semua tombol siap digunakan";
     });
   </script>
 </body>
