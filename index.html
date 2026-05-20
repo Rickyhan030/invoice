@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Nota Invoice</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;color:#111}
+    .app{max-width:1200px;margin:auto;padding:16px}
+    .panel{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 8px 25px rgba(0,0,0,.08)}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    label{display:block;font-size:13px;font-weight:700;margin-bottom:5px}
+    input,textarea,button{width:100%;padding:11px;border:1px solid #ddd;border-radius:10px;font-size:14px}
+    textarea{min-height:70px;resize:vertical}
+    button{cursor:pointer;border:0;background:#111;color:white;font-weight:800}
+    .secondary{background:#e5e7eb;color:#111}
+    .wa{background:#16a34a;color:#fff;font-size:15px}
+    .danger{background:#dc2626;color:#fff}
+    .actions{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #e5e5e5;text-align:left;vertical-align:middle}
+    td input{background:#f9fafb}
+
+    .paper-wrap{overflow:auto;background:#ddd;padding:14px;border-radius:14px}
+    .invoice{width:1120px;min-height:794px;background:#fff;margin:auto;padding:28px 24px;position:relative;color:#111}
+    .top{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:start}
+    .brand{display:flex;gap:24px;align-items:flex-start}
+    .logo{width:130px;height:142px;object-fit:contain}
+    .company-name{font-size:34px;line-height:1.13;letter-spacing:1px;text-transform:uppercase;font-weight:400;white-space:pre-line}
+    .company-address{margin-top:22px;font-size:23px;letter-spacing:.5px;text-transform:uppercase}
+    .company-phone{margin-top:10px;font-size:22px}
+    .customer{display:grid;grid-template-columns:170px 1fr;gap:10px;font-size:22px;line-height:1.35;padding-top:18px}
+    .line{border-top:3px solid #111;margin:16px 0 0}
+    .invoice-table th{font-size:22px;font-weight:400;border-bottom:3px solid #111;padding:14px 0 28px}
+    .invoice-table td{font-size:21px;border-bottom:2px solid #ddd;padding:4px 0}
+    .no{width:70px}.qty{width:220px}.item{width:500px}.price,.amount{text-align:right;width:165px}
+    .after-table{border-top:3px solid #111;margin-top:16px;padding-top:6px;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:start}
+    .printed{text-align:center;font-size:28px}.total-qty{font-size:22px;margin-top:48px}
+    .summary{justify-self:end;width:440px;font-size:22px}
+    .summary-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+    .label-total{font-size:28px;font-weight:800}.value{text-align:right}.big{font-size:28px;font-weight:800}
+    .footer{position:absolute;left:36px;right:36px;bottom:130px;display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;font-size:22px;align-items:end}
+    .thank{font-size:23px}
+
+    @media(max-width:800px){
+      .grid,.actions{grid-template-columns:1fr}
+      .app{padding:10px}
+      .invoice{transform:scale(.45);transform-origin:top left}
+      .paper-wrap{height:390px}
+    }
+
+    @media print{
+      body{background:#fff}
+      .panel,.app>h2{display:none}
+      .app{padding:0}
+      .paper-wrap{padding:0;background:#fff}
+      .invoice{width:100%;min-height:100vh}
+      @page{size:A4 landscape;margin:8mm}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h2>Aplikasi Nota Invoice</h2>
+
+    <div class="panel">
+      <div class="grid">
+        <div><label>Ganti Logo</label><input type="file" id="logoInput" accept="image/*"></div>
+        <div><label>Nama Perusahaan</label><textarea id="companyName">MADU ASLI SUMBAWA
+SUMI BTR</textarea></div>
+        <div><label>Alamat</label><input id="companyAddress" value="PEKAT, SUMBAWA BESAR"></div>
+        <div><label>No HP</label><input id="companyPhone" value="08233779609"></div>
+        <div><label>Tanggal</label><input id="date" value="10 Mei 2026"></div>
+        <div><label>Customer</label><input id="customerName" value="Customer Abdul Hafiz"></div>
+        <div><label>Alamat Customer</label><input id="customerAddress" value="LOTENG"></div>
+        <div><label>Bayar</label><input id="paid" type="number" value="0"></div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="btnAdd">+ Tambah Item</button>
+        <button type="button" id="btnSave" class="secondary">Simpan Data</button>
+        <button type="button" id="btnPrint">Print / PDF</button>
+        <button type="button" id="btnWA" class="wa">Kirim PDF WA</button>
+        <button type="button" id="btnReset" class="danger">Reset</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <table>
+        <thead>
+          <tr><th>Banyaknya</th><th>Nama Item</th><th>Harga</th><th>Jumlah</th><th>Aksi</th></tr>
+        </thead>
+        <tbody id="editItems"></tbody>
+      </table>
+    </div>
+
+    <div class="paper-wrap">
+      <div class="invoice" id="invoiceArea">
+        <div class="top">
+          <div class="brand">
+            <img id="logoPreview" class="logo" alt="Logo">
+            <div>
+              <div class="company-name" id="pCompanyName"></div>
+              <div class="company-address" id="pCompanyAddress"></div>
+              <div class="company-phone" id="pCompanyPhone"></div>
+            </div>
+          </div>
+
+          <div class="customer">
+            <div>Tanggal:</div><div id="pDate"></div>
+            <div style="margin-top:24px">Kepada Yth.</div><div></div>
+            <div></div><div id="pCustomerName"></div>
+            <div></div><div id="pCustomerAddress"></div>
+          </div>
+        </div>
+
+        <div class="line"></div>
+
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th class="no">NO</th>
+              <th class="qty">BANYAKNYA</th>
+              <th class="item">NAMA ITEM</th>
+              <th class="price">HARGA</th>
+              <th class="amount">JUMLAH</th>
+            </tr>
+          </thead>
+          <tbody id="printItems"></tbody>
+        </table>
+
+        <div class="after-table">
+          <div class="total-qty">Total Qty: <span id="pTotalQty">0</span></div>
+          <div class="printed">[ Printed by e-Nota ]</div>
+          <div class="summary">
+            <div class="summary-row"><div class="label-total">TOTAL</div><div class="value big" id="pTotal">0</div></div>
+            <div class="summary-row"><div>BAYAR</div><div class="value" id="pPaid">0</div></div>
+            <div class="summary-row"><div>SISA</div><div class="value" id="pRemain">0</div></div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div>Tanda Terima</div>
+          <div class="thank">*** Thank You ***<br><span id="pTimestamp"></span></div>
+          <div>Hormat Kami</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var items = [
+      {qty:1, name:"MADU ASLI SBW 5L", price:0},
+      {qty:4, name:"Sarang Madu 500gr", price:0},
+      {qty:1, name:"ONGKIR", price:0}
+    ];
+
+    var defaultLogo = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22130%22%20height%3D%22142%22%3E%3Crect%20width%3D%22130%22%20height%3D%22142%22%20fill%3D%22%23f7c948%22/%3E%3Ctext%20x%3D%2265%22%20y%3D%2274%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%22%3ELOGO%3C/text%3E%3C/svg%3E";
+
+    function el(id){ return document.getElementById(id); }
+    function rupiah(n){ return Number(n || 0).toLocaleString("id-ID"); }
+    function cleanNumber(v){ return Number(String(v || "0").replace(/[^0-9]/g, "")); }
+
+    function escapeHtml(text){
+      return String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function updateFromInputs(){
+      var qtys = document.querySelectorAll(".qtyInput");
+      var names = document.querySelectorAll(".nameInput");
+      var prices = document.querySelectorAll(".priceInput");
+
+      for(var i = 0; i < items.length; i++){
+        if(qtys[i]) items[i].qty = cleanNumber(qtys[i].value);
+        if(names[i]) items[i].name = names[i].value;
+        if(prices[i]) items[i].price = cleanNumber(prices[i].value);
+      }
+    }
+
+    function renderInputRows(){
+      var html = "";
+      for(var i = 0; i < items.length; i++){
+        var q = Number(items[i].qty || 0);
+        var p = Number(items[i].price || 0);
+        var j = q * p;
+
+        html += "<tr>";
+        html += "<td><input class='qtyInput' type='number' value='" + q + "'></td>";
+        html += "<td><input class='nameInput' type='text' value="" + escapeHtml(items[i].name) + ""></td>";
+        html += "<td><input class='priceInput' type='number' value='" + p + "'></td>";
+        html += "<td>Rp " + rupiah(j) + "</td>";
+        html += "<td><button type='button' class='danger deleteBtn' data-index='" + i + "'>Hapus</button></td>";
+        html += "</tr>";
+      }
+      el("editItems").innerHTML = html;
+    }
+
+    function renderPreview(){
+      updateFromInputs();
+
+      var total = 0;
+      var totalQty = 0;
+      var html = "";
+
+      el("pCompanyName").innerText = el("companyName").value;
+      el("pCompanyAddress").innerText = el("companyAddress").value;
+      el("pCompanyPhone").innerText = el("companyPhone").value;
+      el("pDate").innerText = el("date").value;
+      el("pCustomerName").innerText = el("customerName").value;
+      el("pCustomerAddress").innerText = el("customerAddress").value;
+
+      for(var i = 0; i < items.length; i++){
+        var q = Number(items[i].qty || 0);
+        var p = Number(items[i].price || 0);
+        var j = q * p;
+        total += j;
+        totalQty += q;
+
+        html += "<tr>";
+        html += "<td>" + (i + 1) + "</td>";
+        html += "<td>" + q + " x</td>";
+        html += "<td>" + escapeHtml(items[i].name) + "</td>";
+        html += "<td class='price'>" + rupiah(p) + "</td>";
+        html += "<td class='amount'>" + rupiah(j) + "</td>";
+        html += "</tr>";
+      }
+
+      el("printItems").innerHTML = html;
+
+      var paid = cleanNumber(el("paid").value);
+      el("pTotalQty").innerText = totalQty;
+      el("pTotal").innerText = rupiah(total);
+      el("pPaid").innerText = rupiah(paid);
+      el("pRemain").innerText = rupiah(total - paid);
+      el("pTimestamp").innerText = new Date().toLocaleString("id-ID");
+    }
+
+    function renderAll(){
+      renderInputRows();
+      renderPreview();
+    }
+
+    function tambahItem(){
+      updateFromInputs();
+      items.push({qty:1, name:"Nama Item Baru", price:0});
+      renderAll();
+    }
+
+    function simpanData(){
+      updateFromInputs();
+
+      var data = {
+        items: items,
+        logo: el("logoPreview").src,
+        companyName: el("companyName").value,
+        companyAddress: el("companyAddress").value,
+        companyPhone: el("companyPhone").value,
+        date: el("date").value,
+        customerName: el("customerName").value,
+        customerAddress: el("customerAddress").value,
+        paid: el("paid").value
+      };
+
+      localStorage.setItem("dataNotaInvoicePDF", JSON.stringify(data));
+      alert("Data berhasil disimpan");
+      renderPreview();
+    }
+
+    function muatData(){
+      var saved = localStorage.getItem("dataNotaInvoicePDF");
+
+      if(saved){
+        try{
+          var data = JSON.parse(saved);
+          if(data.items && data.items.length) items = data.items;
+          el("logoPreview").src = data.logo || defaultLogo;
+          el("companyName").value = data.companyName || el("companyName").value;
+          el("companyAddress").value = data.companyAddress || el("companyAddress").value;
+          el("companyPhone").value = data.companyPhone || el("companyPhone").value;
+          el("date").value = data.date || el("date").value;
+          el("customerName").value = data.customerName || el("customerName").value;
+          el("customerAddress").value = data.customerAddress || el("customerAddress").value;
+          el("paid").value = data.paid || el("paid").value;
+        }catch(err){
+          el("logoPreview").src = defaultLogo;
+        }
+      }else{
+        el("logoPreview").src = defaultLogo;
+      }
+    }
+
+    async function kirimPDFWA(){
+      updateFromInputs();
+      renderPreview();
+
+      var element = el("invoiceArea");
+      var fileName = "nota-invoice.pdf";
+
+      var opt = {
+        margin: 0.3,
+        filename: fileName,
+        image: { type: "jpeg", quality: 1 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "in", format: "a4", orientation: "landscape" }
+      };
+
+      try{
+        var worker = html2pdf().set(opt).from(element);
+        var pdfBlob = await worker.outputPdf("blob");
+        var file = new File([pdfBlob], fileName, { type: "application/pdf" });
+
+        if(navigator.canShare && navigator.canShare({ files: [file] })){
+          await navigator.share({
+            files: [file],
+            title: "Nota Invoice",
+            text: "Berikut nota invoice PDF"
+          });
+        }else{
+          await html2pdf().set(opt).from(element).save();
+          alert("PDF berhasil dibuat. Jika WhatsApp tidak terbuka otomatis, kirim file PDF yang terdownload secara manual lewat WhatsApp.");
+        }
+      }catch(e){
+        await html2pdf().set(opt).from(element).save();
+        alert("PDF berhasil didownload. Kirim manual file PDF tersebut lewat WhatsApp.");
+      }
+    }
+
+    function resetData(){
+      if(confirm("Reset semua data?")){
+        localStorage.removeItem("dataNotaInvoicePDF");
+        location.reload();
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function(){
+      muatData();
+      renderAll();
+
+      el("btnAdd").addEventListener("click", tambahItem);
+      el("btnSave").addEventListener("click", simpanData);
+      el("btnPrint").addEventListener("click", function(){
+        updateFromInputs();
+        renderPreview();
+        window.print();
+      });
+      el("btnWA").addEventListener("click", kirimPDFWA);
+      el("btnReset").addEventListener("click", resetData);
+
+      var fields = ["companyName","companyAddress","companyPhone","date","customerName","customerAddress","paid"];
+      for(var i = 0; i < fields.length; i++){
+        el(fields[i]).addEventListener("input", renderPreview);
+      }
+
+      el("editItems").addEventListener("input", renderPreview);
+
+      el("editItems").addEventListener("click", function(e){
+        if(e.target.classList.contains("deleteBtn")){
+          updateFromInputs();
+          var index = Number(e.target.getAttribute("data-index"));
+          items.splice(index, 1);
+          renderAll();
+        }
+      });
+
+      el("logoInput").addEventListener("change", function(){
+        var file = this.files[0];
+        if(!file) return;
+
+        var reader = new FileReader();
+        reader.onload = function(ev){
+          el("logoPreview").src = ev.target.result;
+          simpanData();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+  </script>
+</body>
+</html>
